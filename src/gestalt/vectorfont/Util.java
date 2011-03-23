@@ -25,6 +25,9 @@ package gestalt.vectorfont;
 
 
 import com.sun.j3d.utils.geometry.GeometryInfo;
+import gestalt.Gestalt;
+import gestalt.impl.jogl.shape.JoglMesh;
+import gestalt.shape.Mesh;
 import java.util.Vector;
 import javax.media.j3d.GeometryArray;
 import javax.vecmath.Point3f;
@@ -32,6 +35,22 @@ import mathematik.Vector3f;
 
 
 public class Util {
+
+    public static Mesh createMesh(Vector<Vector3f> pTriangles, final boolean pCreateNormals) {
+        final float[] mVertices = werkzeug.Util.toArray3f(pTriangles);
+        final float[] mNormals;
+        if (pCreateNormals) {
+            mNormals = new float[mVertices.length];
+            mathematik.Util.createNormals(mVertices, mNormals);
+        } else {
+            mNormals = null;
+        }
+        return new JoglMesh(mVertices, 3,
+                            null, 4,
+                            null, 2,
+                            mNormals,
+                            Gestalt.MESH_TRIANGLES);
+    }
 
     public static Vector<Vector3f[]> convertToTriangles(final Vector<Vector<Vector<Vector3f>>> pVectors) {
         final Vector<Vector3f[]> myCharTriangles = new Vector<Vector3f[]>();
@@ -47,9 +66,35 @@ public class Util {
                 }
             }
             if (myCharacter.size() > 0) {
-                myCharTriangles.add(triangulate(werkzeug.Util.toFloatArray(myVertices),
+                myCharTriangles.add(triangulate(werkzeug.Util.toArray3f(myVertices),
                                                 werkzeug.Util.toArray(myVertivesPerShape),
                                                 new int[] {myCharacter.size()}));
+            }
+        }
+        return myCharTriangles;
+    }
+
+    public static Vector<Vector3f> convertToVertices(final Vector<Vector<Vector<Vector3f>>> pVectors) {
+        final Vector<Vector3f> myCharTriangles = new Vector<Vector3f>();
+        for (int i = 0; i < pVectors.size(); i++) {
+            final Vector<Vector3f> myVertices = new Vector<Vector3f>();
+            final Vector<Integer> myVertivesPerShape = new Vector<Integer>();
+            final Vector<Vector<Vector3f>> myCharacter = pVectors.get(i);
+            for (int j = 0; j < myCharacter.size(); j++) {
+                final Vector<Vector3f> myOutline = myCharacter.get(j);
+                myVertivesPerShape.add(myOutline.size());
+                for (Vector3f v : myOutline) {
+                    myVertices.add(v);
+                }
+            }
+            if (myCharacter.size() > 0) {
+                final Vector3f[] mTriangle = triangulate(werkzeug.Util.toArray3f(myVertices),
+                                                         werkzeug.Util.toArray(myVertivesPerShape),
+                                                         new int[] {myCharacter.size()});
+                for (int j = 0; j < mTriangle.length; j++) {
+                    final Vector3f v = mTriangle[j];
+                    myCharTriangles.add(v);
+                }
             }
         }
         return myCharTriangles;

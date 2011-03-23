@@ -24,6 +24,7 @@
 package gestalt.vectorfont.demo;
 
 
+import gestalt.shape.Mesh;
 import gestalt.vectorfont.TextOutlineCreator;
 import gestalt.vectorfont.Util;
 
@@ -48,6 +49,9 @@ public class SketchTextOnPath
         size(640, 480, OPENGL);
 
         mPathCreator = new TextOutlineCreator("Helvetica", 32);
+        mPathCreator.insideFlag(mathematik.Util.CLOCKWISE);
+//        mPathCreator = new TextOutlineCreator("ReplicaMonoPro", 32);
+//        mPathCreator.insideFlag(mathematik.Util.COUNTERCLOCKWISE);
         mPathCreator.outline_flatness(0.25f);
         mPathCreator.stretch_to_fit(false);
         mPathCreator.repeat(false);
@@ -58,24 +62,15 @@ public class SketchTextOnPath
         e.width = 200;
         e.height = 200;
         mReturn = mPathCreator.getOutlineFromTextOnPathJAVA2D(e, "Since I was very young I realized ...");
-
-//        final GeneralPath mPath = new GeneralPath();
-//        mPath.moveTo(0, 0);
-//        mPath.curveTo(0, 0, width / 4, height, width, height);
-//        mReturn = mResultPath.alignTextOnPath(mPath, "Since I was very young I realized ...");
     }
 
     public void draw() {
-
         background(255);
-
         drawTriangles();
-
         drawOutline(mReturn);
     }
 
     private void drawTriangles() {
-
         /* adjust flatness ( ie resolutions of curves ) */
         final float mFlatness = abs((float)mouseX / (float)width) * 5 + 0.1f;
         mPathCreator.outline_flatness(mFlatness);
@@ -110,36 +105,34 @@ public class SketchTextOnPath
         }
 
         /* create and draw trinangles */
-        final Vector<Vector3f[]> myTriangles = Util.convertToTriangles(mReturns);
-        for (Vector3f[] myCharacters : myTriangles) {
-            beginShape(TRIANGLES);
-            for (int i = 0; i < myCharacters.length; i += 3) {
-                vertex(myCharacters[i + 0].x, myCharacters[i + 0].y, myCharacters[i + 0].z);
-                vertex(myCharacters[i + 1].x, myCharacters[i + 1].y, myCharacters[i + 1].z);
-                vertex(myCharacters[i + 2].x, myCharacters[i + 2].y, myCharacters[i + 2].z);
-            }
-            endShape();
+        final Vector<Vector3f> myTriangles = Util.convertToVertices(mReturns);
+        beginShape(TRIANGLES);
+        for (Vector3f myCharacters : myTriangles) {
+            vertex(myCharacters.x, myCharacters.y, myCharacters.z);
         }
+        endShape();
     }
 
     private void drawOutline(Shape mReturn) {
         stroke(0, 64);
         noFill();
 
-        final PathIterator it = mReturn.getPathIterator(null, 1.0f);
-        int type;
-        float[] points = new float[6];
-        beginShape(POLYGON);
-        while (!it.isDone()) {
-            type = it.currentSegment(points);
-            vertex(points[0], points[1]);
-            if (type == PathIterator.SEG_CLOSE) {
-                endShape(CLOSE);
-                beginShape();
+        if (mReturn != null) {
+            final PathIterator it = mReturn.getPathIterator(null, 1.0f);
+            int type;
+            float[] points = new float[6];
+            beginShape(POLYGON);
+            while (!it.isDone()) {
+                type = it.currentSegment(points);
+                vertex(points[0], points[1]);
+                if (type == PathIterator.SEG_CLOSE) {
+                    endShape(CLOSE);
+                    beginShape();
+                }
+                it.next();
             }
-            it.next();
+            endShape();
         }
-        endShape();
     }
 
     public static void main(String[] args) {

@@ -69,6 +69,8 @@ public class TextOutlineCreator {
 
     private final FontRenderContext mFRC;
 
+    private int mInsideFlag = mathematik.Util.CLOCKWISE;
+
     public TextOutlineCreator(final String pFontName, final float mFontSize) {
         this(Font.decode(pFontName).deriveFont(Font.PLAIN, mFontSize));
     }
@@ -95,10 +97,15 @@ public class TextOutlineCreator {
         final GlyphVector mVector = mFont.createGlyphVector(mFRC, text);
         for (int j = 0; j < mVector.getNumGlyphs(); j++) {
             final Shape mGlyph = mVector.getGlyphOutline(j);
-            final Vector<Vector<Vector<Vector3f>>> mNewCharacters = TextOutlineCreator.extractOutlineFromComplexGlyph(mGlyph, mOutlineFlatness);
+            final Vector<Vector<Vector<Vector3f>>> mNewCharacters = TextOutlineCreator.extractOutlineFromComplexGlyph(mGlyph, mOutlineFlatness, mInsideFlag);
             myOutlines.addAll(mNewCharacters);
         }
         return myOutlines;
+    }
+
+    public int insideFlag(final int pInsideFlag) {
+        mInsideFlag = pInsideFlag;
+        return mInsideFlag;
     }
 
     public GeneralPath getOutlineFromTextOnPathJAVA2D(final Shape mPath, final String pText) {
@@ -137,7 +144,7 @@ public class TextOutlineCreator {
                 case PathIterator.SEG_CLOSE:
                     mPoints[0] = moveX;
                     mPoints[1] = moveY;
-                // Fall into....
+                /* fall through */
 
                 case PathIterator.SEG_LINETO:
                     thisX = mPoints[0];
@@ -243,7 +250,7 @@ public class TextOutlineCreator {
                 case PathIterator.SEG_CLOSE:
                     mPoints[0] = moveX;
                     mPoints[1] = moveY;
-                // Fall into....
+                /* fall through */
 
                 case PathIterator.SEG_LINETO:
                     mThisX = mPoints[0];
@@ -270,7 +277,9 @@ public class TextOutlineCreator {
 
                             /* extract outlines */
                             final Shape mShape = mTransform.createTransformedShape(mGlyph);
-                            final Vector<Vector<Vector<Vector3f>>> mNewCharacters = extractOutlineFromComplexGlyph(mShape, mOutlineFlatness);
+                            final Vector<Vector<Vector<Vector3f>>> mNewCharacters = extractOutlineFromComplexGlyph(mShape,
+                                                                                                                   mOutlineFlatness,
+                                                                                                                   mInsideFlag);
                             mAllCharacters.addAll(mNewCharacters);
                             mNext += (advance + nextAdvance) * factor;
                             mCurrentCharID++;
@@ -290,14 +299,15 @@ public class TextOutlineCreator {
     }
 
     public static Vector<Vector<Vector<Vector3f>>> extractOutlineFromComplexGlyph(final Shape pShape,
-                                                                                  final float pOutlineFlatness) {
+                                                                                  final float pOutlineFlatness,
+                                                                                  final int pInsideFlag) {
         final Vector<Vector<Vector<Vector3f>>> pAllCharacters = new Vector<Vector<Vector<Vector3f>>>();
         final Vector<Vector<Vector3f>> mSingleCharacter = extractOutlineFromSimpleShape(pShape, pOutlineFlatness);
         /* add simple character or handle and split complex glyphs */
         if (mSingleCharacter.size() <= 1) {
             pAllCharacters.add(mSingleCharacter);
         } else {
-            handleComplexGlyphs(mSingleCharacter, pAllCharacters);
+            handleComplexGlyphs(mSingleCharacter, pAllCharacters, pInsideFlag);
         }
         return pAllCharacters;
     }
@@ -338,13 +348,14 @@ public class TextOutlineCreator {
         return myCharacter;
     }
 
-    private static void handleComplexGlyphs(final Vector<Vector<Vector3f>> mSingleCharacter, final Vector<Vector<Vector<Vector3f>>> mAllCharacters) {
+    private static void handleComplexGlyphs(final Vector<Vector<Vector3f>> pSingleCharacter, final Vector<Vector<Vector<Vector3f>>> pAllCharacters,
+                                            final int pInsideFlag) {
         /*  sort inside and outside shapes */
         final Vector<MShape> mInsideShapes = new Vector<MShape>();
         final Vector<MShape> mOutsideShapes = new Vector<MShape>();
-        for (int i = 0; i < mSingleCharacter.size(); i++) {
-            final Vector<Vector3f> mSingleShape = mSingleCharacter.get(i);
-            final boolean mIsInside = mathematik.Util.isClockWise2D(mSingleShape) == mathematik.Util.CLOCKWISE;
+        for (int i = 0; i < pSingleCharacter.size(); i++) {
+            final Vector<Vector3f> mSingleShape = pSingleCharacter.get(i);
+            final boolean mIsInside = mathematik.Util.isClockWise2D(mSingleShape) == pInsideFlag;
             if (mIsInside) {
                 mInsideShapes.add(new MShape(mIsInside, mSingleShape));
             } else {
@@ -353,7 +364,7 @@ public class TextOutlineCreator {
         }
         /* add shapes as individual 'characters' if there is no insides */
         if (mInsideShapes.isEmpty()) {
-            addMShapes(mOutsideShapes, mAllCharacters);
+            addMShapes(mOutsideShapes, pAllCharacters);
         } else {
             /* asign inside shapes to outside shapes */
             final Iterator<MShape> mIterator = mInsideShapes.iterator();
@@ -376,7 +387,7 @@ public class TextOutlineCreator {
                 }
             }
             /* add all outside shapes */
-            addMShapes(mOutsideShapes, mAllCharacters);
+            addMShapes(mOutsideShapes, pAllCharacters);
         }
     }
 
