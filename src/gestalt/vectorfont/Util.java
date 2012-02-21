@@ -23,15 +23,17 @@
 
 package gestalt.vectorfont;
 
+import gestalt.Gestalt;
+import gestalt.shape.Mesh;
+
+import mathematik.Vector3f;
 
 import com.sun.j3d.utils.geometry.GeometryInfo;
-import gestalt.Gestalt;
-import gestalt.impl.jogl.shape.JoglMesh;
-import gestalt.shape.Mesh;
+
 import java.util.Vector;
+
 import javax.media.j3d.GeometryArray;
 import javax.vecmath.Point3f;
-import mathematik.Vector3f;
 
 
 public class Util {
@@ -45,7 +47,7 @@ public class Util {
         } else {
             mNormals = null;
         }
-        return new JoglMesh(mVertices, 3,
+        return new Mesh(mVertices, 3,
                             null, 4,
                             null, 2,
                             mNormals,
